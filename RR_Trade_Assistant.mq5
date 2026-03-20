@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.09"
+#property version   "1.10"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -125,6 +125,8 @@ int GetScaledPx(int base_px);
 int GetScaledFontSize(int base_size);
 bool IsMarketOrderMode();
 void ShiftRRToolY(int delta_y);
+void ClampRRToolToViewport();
+void SyncLinesFromRRToolBlocks();
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
 void EnsureMarketOrderLevelsValid();
@@ -169,6 +171,58 @@ void ShiftRRToolY(int delta_y) {
    }
 }
 
+void ClampRRToolToViewport() {
+   if(!tool_visible)
+      return;
+
+   string recs[5] = {REC1, REC2, REC3, REC4, REC5};
+   int min_y = 2147483647;
+   int max_bottom = -2147483647;
+
+   for(int i = 0; i < 5; i++) {
+      int y = (int)ObjectGetInteger(0, recs[i], OBJPROP_YDISTANCE);
+      int h = (int)ObjectGetInteger(0, recs[i], OBJPROP_YSIZE);
+      if(y < min_y) min_y = y;
+      if(y + h > max_bottom) max_bottom = y + h;
+   }
+
+   int chart_h = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS);
+   if(chart_h <= 0)
+      return;
+
+   int delta_y = 0;
+   if(min_y < 0)
+      delta_y = -min_y;
+   else if(max_bottom > chart_h)
+      delta_y = chart_h - max_bottom;
+
+   if(delta_y != 0)
+      ShiftRRToolY(delta_y);
+}
+
+void SyncLinesFromRRToolBlocks() {
+   if(!tool_visible)
+      return;
+
+   int window = 0;
+   datetime dt_tp = 0, dt_pr = 0, dt_sl = 0;
+   double price_tp = 0, price_pr = 0, price_sl = 0;
+
+   int x_tp = (int)ObjectGetInteger(0, REC1, OBJPROP_XDISTANCE) + (int)ObjectGetInteger(0, REC1, OBJPROP_XSIZE) / 2;
+   int y_tp = (int)ObjectGetInteger(0, REC1, OBJPROP_YDISTANCE) + (int)ObjectGetInteger(0, REC1, OBJPROP_YSIZE);
+   int x_pr = (int)ObjectGetInteger(0, REC3, OBJPROP_XDISTANCE) + (int)ObjectGetInteger(0, REC3, OBJPROP_XSIZE) / 2;
+   int y_pr = (int)ObjectGetInteger(0, REC3, OBJPROP_YDISTANCE) + (int)ObjectGetInteger(0, REC3, OBJPROP_YSIZE);
+   int x_sl = (int)ObjectGetInteger(0, REC5, OBJPROP_XDISTANCE) + (int)ObjectGetInteger(0, REC5, OBJPROP_XSIZE) / 2;
+   int y_sl = (int)ObjectGetInteger(0, REC5, OBJPROP_YDISTANCE) + (int)ObjectGetInteger(0, REC5, OBJPROP_YSIZE);
+
+   if(ChartXYToTimePrice(0, x_tp, y_tp, window, dt_tp, price_tp))
+      ObjectSetDouble(0, TP_HL, OBJPROP_PRICE, price_tp);
+   if(ChartXYToTimePrice(0, x_pr, y_pr, window, dt_pr, price_pr))
+      ObjectSetDouble(0, PR_HL, OBJPROP_PRICE, price_pr);
+   if(ChartXYToTimePrice(0, x_sl, y_sl, window, dt_sl, price_sl))
+      ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, price_sl);
+}
+
 void SyncMarketEntryWithLine() {
    if(!tool_visible || !IsMarketOrderMode() || is_tool_dragging)
       return;
@@ -187,6 +241,8 @@ void SyncMarketEntryWithLine() {
 
    int y_current = (int)ObjectGetInteger(0, REC3, OBJPROP_YDISTANCE) + (int)ObjectGetInteger(0, REC3, OBJPROP_YSIZE);
    ShiftRRToolY(y_target - y_current);
+   ClampRRToolToViewport();
+   SyncLinesFromRRToolBlocks();
 }
 
 void SyncMarketSLTPLinesWithRRTool() {
@@ -240,6 +296,11 @@ void SyncMarketSLTPLinesWithRRTool() {
       ObjectSetInteger(0, REC2, OBJPROP_YSIZE, MathMax(1, yd_r3 - (yd_r5 + ys_r5)));
       ObjectSetInteger(0, REC4, OBJPROP_YDISTANCE, yd_r3 + ys_r3);
       ObjectSetInteger(0, REC4, OBJPROP_YSIZE, MathMax(1, yd_r1 - (yd_r3 + ys_r3)));
+   }
+
+   if(IsMarketOrderMode()) {
+      ClampRRToolToViewport();
+      SyncLinesFromRRToolBlocks();
    }
 }
 
