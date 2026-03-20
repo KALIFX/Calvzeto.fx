@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.08"
+#property version   "1.09"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -127,6 +127,7 @@ bool IsMarketOrderMode();
 void ShiftRRToolY(int delta_y);
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
+void EnsureMarketOrderLevelsValid();
 int GetPanelScaledPx(int base_px);
 int GetPanelScaledFontSize(int base_size);
 int GetScaledPx(int base_px) {
@@ -242,6 +243,56 @@ void SyncMarketSLTPLinesWithRRTool() {
    }
 }
 
+void EnsureMarketOrderLevelsValid() {
+   if(!tool_visible || !IsMarketOrderMode() || is_tool_dragging)
+      return;
+
+   double entry = Get_Price_d(PR_HL);
+   double sl = Get_Price_d(SL_HL);
+   double tp = Get_Price_d(TP_HL);
+   if(entry <= 0 || sl <= 0 || tp <= 0)
+      return;
+
+   double min_gap = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
+   if(min_gap <= 0)
+      min_gap = _Point;
+   if(min_gap <= 0)
+      min_gap = 0.00001;
+
+   if(selected_order_type == "BUY") {
+      if(sl >= entry || tp <= entry) {
+         double sl_dist = MathAbs(entry - sl);
+         double tp_dist = MathAbs(tp - entry);
+         if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
+         if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
+
+         sl = entry - sl_dist;
+         tp = entry + tp_dist;
+      }
+   }
+   else if(selected_order_type == "SELL") {
+      if(sl <= entry || tp >= entry) {
+         double sl_dist = MathAbs(sl - entry);
+         double tp_dist = MathAbs(entry - tp);
+         if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
+         if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
+
+         sl = entry + sl_dist;
+         tp = entry - tp_dist;
+      }
+   }
+
+   if(sl >= entry) sl = entry - min_gap;
+   if(tp <= entry) tp = entry + min_gap;
+   if(selected_order_type == "SELL") {
+      if(sl <= entry) sl = entry + min_gap;
+      if(tp >= entry) tp = entry - min_gap;
+   }
+
+   ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, sl);
+   ObjectSetDouble(0, TP_HL, OBJPROP_PRICE, tp);
+}
+
 void SetPanelMinimized(bool minimized) {
    panel_minimized = minimized;
 
@@ -342,6 +393,7 @@ void OnTick() {
 
    if(tool_visible) {
       SyncMarketEntryWithLine();
+      EnsureMarketOrderLevelsValid();
       SyncMarketSLTPLinesWithRRTool();
       SyncComputedRR();
       SyncPanelInputsFromLines();
@@ -354,6 +406,7 @@ void OnTimer() {
    if(!tool_visible) return;
 
    SyncMarketEntryWithLine();
+   EnsureMarketOrderLevelsValid();
    SyncMarketSLTPLinesWithRRTool();
    SyncComputedRR();
    SyncPanelInputsFromLines();
@@ -482,6 +535,7 @@ void OnChartEvent(
 ) {
    if(id == CHARTEVENT_CHART_CHANGE && tool_visible) {
       SyncMarketEntryWithLine();
+      EnsureMarketOrderLevelsValid();
       SyncMarketSLTPLinesWithRRTool();
       SyncComputedRR();
       SyncPanelInputsFromLines();
