@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.07"
+#property version   "1.08"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -1162,6 +1162,7 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
                   color clrBorder = clrNONE, bool isBack = false, string font = "Calibri") {
    ResetLastError(); //--- Reset last error code
    bool is_rr_block = (objName == REC1 || objName == REC2 || objName == REC3 || objName == REC4 || objName == REC5);
+   bool has_rr_text = (objName == REC1 || objName == REC3 || objName == REC5);
    ENUM_OBJECT obj_type = is_rr_block ? OBJ_RECTANGLE_LABEL : OBJ_BUTTON;
 
    if(!ObjectCreate(0, objName, obj_type, 0, 0, 0)) { //--- Create button object
@@ -1183,23 +1184,25 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
       ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
 
-      string txt_obj = objName + "_TXT";
-      ObjectDelete(0, txt_obj);
-      if(!ObjectCreate(0, txt_obj, OBJ_LABEL, 0, 0, 0)) {
-         Print(__FUNCTION__, ": Failed to create RR label: Error Code: ", GetLastError());
-         return false;
+      if(has_rr_text) {
+         string txt_obj = objName + "_TXT";
+         ObjectDelete(0, txt_obj);
+         if(!ObjectCreate(0, txt_obj, OBJ_LABEL, 0, 0, 0)) {
+            Print(__FUNCTION__, ": Failed to create RR label: Error Code: ", GetLastError());
+            return false;
+         }
+         ObjectSetInteger(0, txt_obj, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+         ObjectSetInteger(0, txt_obj, OBJPROP_ANCHOR, ANCHOR_CENTER);
+         ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xD + xS / 2);
+         ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yD + yS / 2);
+         ObjectSetString(0, txt_obj, OBJPROP_TEXT, text);
+         ObjectSetInteger(0, txt_obj, OBJPROP_FONTSIZE, fontsize);
+         ObjectSetString(0, txt_obj, OBJPROP_FONT, font);
+         ObjectSetInteger(0, txt_obj, OBJPROP_COLOR, clrTxt);
+         ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
+         ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
+         ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
       }
-      ObjectSetInteger(0, txt_obj, OBJPROP_CORNER, CORNER_LEFT_UPPER);
-      ObjectSetInteger(0, txt_obj, OBJPROP_ANCHOR, ANCHOR_CENTER);
-      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xD + xS / 2);
-      ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yD + yS / 2);
-      ObjectSetString(0, txt_obj, OBJPROP_TEXT, text);
-      ObjectSetInteger(0, txt_obj, OBJPROP_FONTSIZE, fontsize);
-      ObjectSetString(0, txt_obj, OBJPROP_FONT, font);
-      ObjectSetInteger(0, txt_obj, OBJPROP_COLOR, clrTxt);
-      ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
-      ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
-      ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
    }
    else
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
