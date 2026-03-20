@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.10"
+#property version   "1.11"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -127,6 +127,7 @@ bool IsMarketOrderMode();
 void ShiftRRToolY(int delta_y);
 void ClampRRToolToViewport();
 void SyncLinesFromRRToolBlocks();
+void ClampMarketLinesToViewport();
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
 void EnsureMarketOrderLevelsValid();
@@ -223,6 +224,54 @@ void SyncLinesFromRRToolBlocks() {
       ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, price_sl);
 }
 
+void ClampMarketLinesToViewport() {
+   if(!tool_visible || !IsMarketOrderMode())
+      return;
+
+   int chart_h = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS);
+   if(chart_h <= 2)
+      return;
+
+   int x_ref = (int)ObjectGetInteger(0, REC3, OBJPROP_XDISTANCE) + (int)ObjectGetInteger(0, REC3, OBJPROP_XSIZE) / 2;
+   int window = 0;
+   datetime dt_top = 0, dt_bottom = 0;
+   double p_top = 0, p_bottom = 0;
+
+   if(!ChartXYToTimePrice(0, x_ref, 1, window, dt_top, p_top))
+      return;
+   if(!ChartXYToTimePrice(0, x_ref, chart_h - 1, window, dt_bottom, p_bottom))
+      return;
+
+   double viewport_hi = MathMax(p_top, p_bottom);
+   double viewport_lo = MathMin(p_top, p_bottom);
+   double min_gap = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
+   if(min_gap <= 0) min_gap = _Point;
+   if(min_gap <= 0) min_gap = 0.00001;
+
+   double entry = Get_Price_d(PR_HL);
+   double sl = Get_Price_d(SL_HL);
+   double tp = Get_Price_d(TP_HL);
+   if(entry <= 0 || sl <= 0 || tp <= 0)
+      return;
+
+   entry = MathMax(viewport_lo, MathMin(viewport_hi, entry));
+   sl = MathMax(viewport_lo, MathMin(viewport_hi, sl));
+   tp = MathMax(viewport_lo, MathMin(viewport_hi, tp));
+
+   if(selected_order_type == "BUY") {
+      if(sl >= entry) sl = MathMax(viewport_lo, entry - min_gap);
+      if(tp <= entry) tp = MathMin(viewport_hi, entry + min_gap);
+   }
+   else if(selected_order_type == "SELL") {
+      if(sl <= entry) sl = MathMin(viewport_hi, entry + min_gap);
+      if(tp >= entry) tp = MathMax(viewport_lo, entry - min_gap);
+   }
+
+   ObjectSetDouble(0, PR_HL, OBJPROP_PRICE, entry);
+   ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, sl);
+   ObjectSetDouble(0, TP_HL, OBJPROP_PRICE, tp);
+}
+
 void SyncMarketEntryWithLine() {
    if(!tool_visible || !IsMarketOrderMode() || is_tool_dragging)
       return;
@@ -248,6 +297,9 @@ void SyncMarketEntryWithLine() {
 void SyncMarketSLTPLinesWithRRTool() {
    if(!tool_visible || is_tool_dragging)
       return;
+
+   if(IsMarketOrderMode())
+      ClampMarketLinesToViewport();
 
    double tp_price = Get_Price_d(TP_HL);
    double pr_price = Get_Price_d(PR_HL);
@@ -321,33 +373,20 @@ void EnsureMarketOrderLevelsValid() {
       min_gap = 0.00001;
 
    if(selected_order_type == "BUY") {
-      if(sl >= entry || tp <= entry) {
-         double sl_dist = MathAbs(entry - sl);
-         double tp_dist = MathAbs(tp - entry);
-         if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
-         if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
-
-         sl = entry - sl_dist;
-         tp = entry + tp_dist;
-      }
+      double sl_dist = MathAbs(entry - sl);
+      double tp_dist = MathAbs(tp - entry);
+      if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
+      if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
+      sl = entry - sl_dist;
+      tp = entry + tp_dist;
    }
    else if(selected_order_type == "SELL") {
-      if(sl <= entry || tp >= entry) {
-         double sl_dist = MathAbs(sl - entry);
-         double tp_dist = MathAbs(entry - tp);
-         if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
-         if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
-
-         sl = entry + sl_dist;
-         tp = entry - tp_dist;
-      }
-   }
-
-   if(sl >= entry) sl = entry - min_gap;
-   if(tp <= entry) tp = entry + min_gap;
-   if(selected_order_type == "SELL") {
-      if(sl <= entry) sl = entry + min_gap;
-      if(tp >= entry) tp = entry - min_gap;
+      double sl_dist = MathAbs(sl - entry);
+      double tp_dist = MathAbs(entry - tp);
+      if(sl_dist < min_gap) sl_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_SL_OFFSET_PCT / 100.0));
+      if(tp_dist < min_gap) tp_dist = MathMax(min_gap, entry * (DEFAULT_MARKET_TP_OFFSET_PCT / 100.0));
+      sl = entry + sl_dist;
+      tp = entry - tp_dist;
    }
 
    ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, sl);
