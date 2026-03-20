@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.03"
+#property version   "1.04"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -1144,7 +1144,10 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
                   color clrTxt, color clrBG, int fontsize = 12,
                   color clrBorder = clrNONE, bool isBack = false, string font = "Calibri") {
    ResetLastError(); //--- Reset last error code
-   if(!ObjectCreate(0, objName, OBJ_BUTTON, 0, 0, 0)) { //--- Create button object
+   bool is_rr_block = (objName == REC1 || objName == REC2 || objName == REC3 || objName == REC4 || objName == REC5);
+   ENUM_OBJECT obj_type = is_rr_block ? OBJ_RECTANGLE_LABEL : OBJ_BUTTON;
+
+   if(!ObjectCreate(0, objName, obj_type, 0, 0, 0)) { //--- Create button object
       Print(__FUNCTION__, ": Failed to create Btn: Error Code: ", GetLastError()); //--- Print error message
       return false; //--- Return failure
    }
@@ -1158,12 +1161,16 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
    ObjectSetString(0, objName, OBJPROP_FONT, font); //--- Set font
    ObjectSetInteger(0, objName, OBJPROP_COLOR, clrTxt); //--- Set text color
    ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, clrBG); //--- Set background color
-   if(objName == REC1 || objName == REC2 || objName == REC3 || objName == REC4 || objName == REC5)
-   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrNONE);
+   if(is_rr_block) {
+      ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrNONE);
+      ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
+   }
    else
-   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
+      ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
    ObjectSetInteger(0, objName, OBJPROP_BACK, isBack); //--- Set background/foreground
-   ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- Reset button state
+   if(!is_rr_block)
+      ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- Reset button state
    ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false); //--- Disable selection
    ObjectSetInteger(0, objName, OBJPROP_SELECTED, false); //--- Disable selected state
 
