@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.05"
+#property version   "1.06"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -62,9 +62,13 @@ bool update_Text(string name, string val) {
 
       int xd = (int)ObjectGetInteger(0, name, OBJPROP_XDISTANCE);
       int yd = (int)ObjectGetInteger(0, name, OBJPROP_YDISTANCE);
+      int xs = (int)ObjectGetInteger(0, name, OBJPROP_XSIZE);
       int ys = (int)ObjectGetInteger(0, name, OBJPROP_YSIZE);
+      int font_size = (int)ObjectGetInteger(0, txt_obj, OBJPROP_FONTSIZE);
+      int text_w = EstimateTextWidthPx(val, font_size);
+      int x_center = xd + MathMax(4, (xs - text_w) / 2);
 
-      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xd + 8);
+      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, x_center);
       ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yd + MathMax(0, (ys - 14) / 2));
       return ObjectSetString(0, txt_obj, OBJPROP_TEXT, val);
    }
@@ -127,6 +131,13 @@ void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
 int GetPanelScaledPx(int base_px);
 int GetPanelScaledFontSize(int base_size);
+int EstimateTextWidthPx(string text, int font_size);
+
+int EstimateTextWidthPx(string text, int font_size) {
+   int safe_size = MathMax(1, font_size);
+   int len = StringLen(text);
+   return MathMax(1, (int)MathRound(len * safe_size * 0.55));
+}
 
 int GetScaledPx(int base_px) {
    double scale = RR_TOOL_SCALE_PERCENT;
@@ -1198,6 +1209,8 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
       ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
       ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
+      int initial_text_w = EstimateTextWidthPx(text, fontsize);
+      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xD + MathMax(4, (xS - initial_text_w) / 2));
    }
    else
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
