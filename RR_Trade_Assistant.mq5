@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.12"
+#property version   "1.13"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -1278,6 +1278,8 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
    if(is_rr_block) {
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBG);
       ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
+      ObjectSetInteger(0, objName, OBJPROP_WIDTH, 0);
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
 
       if(has_rr_text) {
