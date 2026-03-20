@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.04"
+#property version   "1.05"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -53,7 +53,23 @@ input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size 
 
 double Get_Price_d(string name) { return ObjectGetDouble(0, name, OBJPROP_PRICE); } //--- Function to get price as double for an object
 string Get_Price_s(string name) { return DoubleToString(ObjectGetDouble(0, name, OBJPROP_PRICE), _Digits); } //--- Function to get price as string with proper digits
-bool update_Text(string name, string val) { return ObjectSetString(0, name, OBJPROP_TEXT, val); } //--- Function to update text of an object
+bool update_Text(string name, string val) {
+   bool is_rr_block = (name == REC1 || name == REC2 || name == REC3 || name == REC4 || name == REC5);
+   if(is_rr_block) {
+      string txt_obj = name + "_TXT";
+      if(ObjectFind(0, txt_obj) < 0)
+         return false;
+
+      int xd = (int)ObjectGetInteger(0, name, OBJPROP_XDISTANCE);
+      int yd = (int)ObjectGetInteger(0, name, OBJPROP_YDISTANCE);
+      int ys = (int)ObjectGetInteger(0, name, OBJPROP_YSIZE);
+
+      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xd + 8);
+      ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yd + MathMax(0, (ys - 14) / 2));
+      return ObjectSetString(0, txt_obj, OBJPROP_TEXT, val);
+   }
+   return ObjectSetString(0, name, OBJPROP_TEXT, val);
+} //--- Function to update text of an object
 
 datetime EXPIRY_DATE = D'2028.02.01 00:00';  // trial expiry
 
@@ -1165,6 +1181,23 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrNONE);
       ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
+
+      string txt_obj = objName + "_TXT";
+      ObjectDelete(0, txt_obj);
+      if(!ObjectCreate(0, txt_obj, OBJ_LABEL, 0, 0, 0)) {
+         Print(__FUNCTION__, ": Failed to create RR label: Error Code: ", GetLastError());
+         return false;
+      }
+      ObjectSetInteger(0, txt_obj, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xD + 8);
+      ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yD + MathMax(0, (yS - 14) / 2));
+      ObjectSetString(0, txt_obj, OBJPROP_TEXT, text);
+      ObjectSetInteger(0, txt_obj, OBJPROP_FONTSIZE, fontsize);
+      ObjectSetString(0, txt_obj, OBJPROP_FONT, font);
+      ObjectSetInteger(0, txt_obj, OBJPROP_COLOR, clrTxt);
+      ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
+      ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
    }
    else
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
@@ -1206,6 +1239,11 @@ void deleteObjects() {
    ObjectDelete(0, REC3); //--- Delete REC3 object
    ObjectDelete(0, REC4); //--- Delete REC4 object
    ObjectDelete(0, REC5); //--- Delete REC5 object
+   ObjectDelete(0, REC1 + "_TXT");
+   ObjectDelete(0, REC2 + "_TXT");
+   ObjectDelete(0, REC3 + "_TXT");
+   ObjectDelete(0, REC4 + "_TXT");
+   ObjectDelete(0, REC5 + "_TXT");
    ObjectDelete(0, TP_HL); //--- Delete TP horizontal line
    ObjectDelete(0, SL_HL); //--- Delete SL horizontal line
    ObjectDelete(0, PR_HL); //--- Delete entry horizontal line
