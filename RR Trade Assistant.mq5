@@ -934,7 +934,10 @@ void createControlPanel() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_XSIZE, GetPanelScaledPx(286));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_YSIZE, GetPanelScaledPx(290));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BGCOLOR, C'048,048,052');
-   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, C'095,095,105');
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, clrWhite);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_TYPE, BORDER_FLAT);
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false);
 
    createButton(MINIMIZE_BTN, CharToString(240), panel_x + GetPanelScaledPx(212), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
