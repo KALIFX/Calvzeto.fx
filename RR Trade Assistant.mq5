@@ -1281,6 +1281,7 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
       ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
       ObjectSetInteger(0, objName, OBJPROP_WIDTH, 0);
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
+      ObjectSetInteger(0, objName, OBJPROP_ZORDER, 100); //--- RR blocks stay above lines for click handling
 
       if(has_rr_text) {
          string txt_obj = objName + "_TXT";
@@ -1300,11 +1301,13 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
          ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
          ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
          ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
-         ObjectSetInteger(0, objName, OBJPROP_ZORDER, 10); // higher than lines
+         ObjectSetInteger(0, txt_obj, OBJPROP_ZORDER, 101); //--- text label above RR block
       }
    }
-   else
+   else {
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
+      ObjectSetInteger(0, objName, OBJPROP_ZORDER, 100); //--- panel buttons above lines for click priority
+   }
    ObjectSetInteger(0, objName, OBJPROP_BACK, isBack); //--- Set background/foreground
    if(!is_rr_block)
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- Reset button state
@@ -1327,9 +1330,11 @@ bool createHL(string objName, datetime time1, double price1, color clr) {
    ObjectSetInteger(0, objName, OBJPROP_TIME, time1); //--- Set line time
    ObjectSetDouble(0, objName, OBJPROP_PRICE, price1); //--- Set line price
    ObjectSetInteger(0, objName, OBJPROP_COLOR, clr); //--- Set line color
-   ObjectSetInteger(0, objName, OBJPROP_BACK, true); //--- Set to foreground
+   ObjectSetInteger(0, objName, OBJPROP_BACK, true); //--- Draw in background layer
    ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_DOT); //--- Set line style
-   ObjectSetInteger(0, objName, OBJPROP_ZORDER, 0); // lowest priority
+   ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, true); //--- Keep lines draggable/selectable
+   ObjectSetInteger(0, objName, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, objName, OBJPROP_ZORDER, 1); //--- Lower click priority than panel and RR blocks
 
    ChartRedraw(0); //--- Redraw chart
    return true; //--- Return success
