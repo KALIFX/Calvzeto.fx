@@ -34,7 +34,6 @@ input int      InpMagic            = 20250813; // EA magic number
 #define PANEL_BG       "panelBackground"
 #define BTN_TOGGLE_PANEL "btnTogglePanel"
 #define ZONE_DIST_LABEL "zone_distance_label"
-#define PANEL_TITLE    "panelTitle"
 
 // --- Line names
 #define ZONE_TOP       "zone_top"
@@ -50,8 +49,8 @@ input int      InpMagic            = 20250813; // EA magic number
 #define ORGY    40
 
 // ===== Theme (flat / modern) =====
-#define CLR_PANEL_BG      C'22,26,33'
-#define CLR_PANEL_BORDER  C'40,46,56'
+#define CLR_PANEL_BG      C'52,56,62'
+#define CLR_PANEL_BORDER  C'78,84,92'
 #define CLR_TEXT_PRIMARY  C'237,242,247'
 #define CLR_ACCENT_BLUE   C'33,150,243'
 #define CLR_ACCENT_GREEN  C'46,204,113'
@@ -120,7 +119,6 @@ void OnDeinit(const int reason)
       "btnTP",
       "btnTogglePanel",
       "panelBackground",
-      "panelTitle",
       "zone_distance_label"
    };
 
@@ -167,14 +165,12 @@ void OnTimer()
 void CreatePanel()
 {
     const int rows   = 7; // total rows including SET SL/TP
-    const int titleH = 22;
-    const int totalH = titleH + (BTN_H + PAD) * rows + PAD + 8;
+    const int totalH = (BTN_H + PAD) * rows + PAD + 22;
 
     // Flat panel background
     CreateRectLabelRounded(PANEL_BG, ORGX - 12, ORGY - 14, BTN_W + 24, totalH, CLR_PANEL_BG, CLR_PANEL_BORDER);
-    CreatePanelTitle(PANEL_TITLE, "KALI LAYERS TOOLBOX", ORGX, ORGY - 8, BTN_W, titleH);
 
-    int y = ORGY + titleH;
+    int y = ORGY;
 
     // Main buttons
     CreateModernButton(BTN_ORDER_TYPE, OrderTypeLabel(), ORGX, y, BTN_W, BTN_H, CLR_ACCENT_BLUE); y += BTN_H + PAD;
@@ -197,11 +193,11 @@ void CreatePanel()
 
     // Toggle button (manual positioning)
     int toggleX = ORGX + BTN_W + 14;
-    int toggleY = ORGY - 8;
-    CreateModernButton(BTN_TOGGLE_PANEL, "-", toggleX, toggleY, 18, titleH, CLR_ACCENT_GRAY);
+    int toggleY = ORGY - 10;
+    CreateModernButton(BTN_TOGGLE_PANEL, "-", toggleX, toggleY, 18, BTN_H, CLR_ACCENT_GRAY);
 
     // Store original X positions
-    string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+    string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                              BTN_SL, BTN_TP, BTN_SET, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE};
 
     ArrayResize(gPanelOrigX, ArraySize(panelObjects));
@@ -214,7 +210,7 @@ void CreatePanel()
 
 void HidePanel()
 {
-   string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+   string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                             BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET, BTN_TOGGLE_PANEL};
 
    for(int i=0; i<ArraySize(panelObjects); i++)
@@ -223,7 +219,7 @@ void HidePanel()
 }
 void ShowPanel()
 {
-   string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+   string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                             BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET, BTN_TOGGLE_PANEL};
 
    for(int i=0; i<ArraySize(panelObjects); i++)
@@ -247,21 +243,6 @@ void CreateRectLabelRounded(string name, int x, int y, int w, int h, color bg, c
    ObjectSetInteger(0,name,OBJPROP_BORDER_TYPE,BORDER_FLAT);
    ObjectSetInteger(0,name,OBJPROP_SELECTABLE,false);
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
-}
-
-void CreatePanelTitle(string name, string text, int x, int y, int width, int height)
-{
-   if(ObjectFind(0, name) < 0) ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
-
-   ObjectSetInteger(0, name, OBJPROP_CORNER, 0);
-   ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x + 2);
-   ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
-   ObjectSetInteger(0, name, OBJPROP_COLOR, CLR_TEXT_PRIMARY);
-   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, 10);
-   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
-   ObjectSetInteger(0, name, OBJPROP_HIDDEN, false);
-   ObjectSetString(0, name, OBJPROP_FONT, "Segoe UI");
-   ObjectSetString(0, name, OBJPROP_TEXT, text);
 }
 
 //+------------------------------------------------------------------+
@@ -358,7 +339,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
         gPanelVisible = !gPanelVisible;
         ObjectSetString(0, BTN_TOGGLE_PANEL, OBJPROP_TEXT, gPanelVisible ? "-" : "+");
     
-        string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+        string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                                  BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET};
     
         for(int i = 0; i < ArraySize(panelObjects); i++)
