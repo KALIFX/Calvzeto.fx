@@ -1104,6 +1104,12 @@ void showTool() {
       createButton(REC1, "", xd1, yd1, xs1, ys1, clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC1
    }
 
+   tool_visible = true; //--- Set tool visibility flag
+   if(IsMarketOrderMode()) {
+      SyncMarketEntryWithLine();
+      EnsureMarketOrderLevelsValid();
+      SyncMarketSLTPLinesWithRRTool();
+   }
 
    update_Text(REC1, BuildTPText()); //--- Update REC1 text
    update_Text(REC3, BuildOrderTypeText()); //--- Update REC3 text
@@ -1111,7 +1117,6 @@ void showTool() {
    SyncComputedRR();
    SyncPanelInputsFromLines();
 
-   tool_visible = true; //--- Set tool visibility flag
    ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true); //--- Enable mouse move events
    ChartRedraw(0); //--- Redraw chart
 }
