@@ -1044,6 +1044,22 @@ void showTool() {
       ys1 = GetScaledPx(30); //--- Set REC1 y-size
    }
 
+   if(selected_order_type == "BUY" || selected_order_type == "SELL") {
+      double mkt_entry = (selected_order_type == "BUY") ? SymbolInfoDouble(Symbol(), SYMBOL_ASK) : SymbolInfoDouble(Symbol(), SYMBOL_BID);
+      if(mkt_entry > 0) {
+         datetime anchor_time = iTime(Symbol(), Period(), 0);
+         if(anchor_time <= 0)
+            anchor_time = TimeCurrent();
+
+         int target_x = xd3 + xs3 / 2;
+         int target_y = 0;
+         if(ChartTimePriceToXY(0, 0, anchor_time, mkt_entry, target_x, target_y)) {
+            int delta_y = target_y - (yd3 + ys3); // align REC3 bottom to market entry level
+            yd1 += delta_y; yd2 += delta_y; yd3 += delta_y; yd4 += delta_y; yd5 += delta_y;
+         }
+      }
+   }
+
    datetime dt_tp = 0, dt_sl = 0, dt_prc = 0; //--- Variables for time
    double price_tp = 0, price_sl = 0, price_prc = 0; //--- Variables for price
    int window = 0; //--- Chart window
