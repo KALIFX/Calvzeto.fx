@@ -129,6 +129,7 @@ void ShiftRRToolY(int delta_y);
 void ClampMarketLinesToViewport();
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
+void ApplyPanelInputsToRRTool();
 void EnsureMarketOrderLevelsValid();
 int GetPanelScaledPx(int base_px);
 int GetPanelScaledFontSize(int base_size);
@@ -552,6 +553,47 @@ void SyncPanelInputsFromLines() {
    // keep user input in RISK_VALUE_EDIT unchanged during sync
 }
 
+void ApplyPanelInputsToRRTool() {
+   if(!tool_visible)
+      return;
+
+   bool is_buy_side = (selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY");
+   double entry = Get_Price_d(PR_HL);
+
+   if(IsMarketOrderMode()) {
+      double mkt_entry = is_buy_side ? SymbolInfoDouble(Symbol(), SYMBOL_ASK) : SymbolInfoDouble(Symbol(), SYMBOL_BID);
+      if(mkt_entry > 0)
+         entry = mkt_entry;
+   }
+   else {
+      double manual_entry = ReadPriceInput(ENTRY_EDIT);
+      if(manual_entry > 0)
+         entry = manual_entry;
+   }
+
+   if(entry <= 0)
+      return;
+
+   ObjectSetDouble(0, PR_HL, OBJPROP_PRICE, entry);
+
+   double sl_points = StringToDouble(ObjectGetString(0, SL_EDIT_FIELD, OBJPROP_TEXT));
+   double tp_points = StringToDouble(ObjectGetString(0, TP_EDIT_FIELD, OBJPROP_TEXT));
+
+   if(sl_points > 0)
+      ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, is_buy_side ? entry - sl_points * _Point : entry + sl_points * _Point);
+   if(tp_points > 0)
+      ObjectSetDouble(0, TP_HL, OBJPROP_PRICE, is_buy_side ? entry + tp_points * _Point : entry - tp_points * _Point);
+
+   EnsureMarketOrderLevelsValid();
+   SyncMarketSLTPLinesWithRRTool();
+   SyncComputedRR();
+   SyncPanelInputsFromLines();
+   update_Text(REC1, BuildTPText());
+   update_Text(REC3, BuildOrderTypeText());
+   update_Text(REC5, BuildSLText());
+   ChartRedraw(0);
+}
+
 //+------------------------------------------------------------------+
 //| Chart event handler                                              |
 //+------------------------------------------------------------------+
@@ -587,6 +629,13 @@ void OnChartEvent(
       update_Text(REC5, BuildSLText());
       ChartRedraw(0);
       return;
+   }
+
+   if(id == CHARTEVENT_OBJECT_ENDEDIT) {
+      if(sparam == ENTRY_EDIT || sparam == SL_EDIT_FIELD || sparam == TP_EDIT_FIELD) {
+         ApplyPanelInputsToRRTool();
+         return;
+      }
    }
 
    if(id == CHARTEVENT_OBJECT_CLICK) { //--- Handle object click events
