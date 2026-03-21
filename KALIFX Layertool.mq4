@@ -34,6 +34,7 @@ input int      InpMagic            = 20250813; // EA magic number
 #define PANEL_BG       "panelBackground"
 #define BTN_TOGGLE_PANEL "btnTogglePanel"
 #define ZONE_DIST_LABEL "zone_distance_label"
+#define PANEL_TITLE    "panelTitle"
 
 // --- Line names
 #define ZONE_TOP       "zone_top"
@@ -42,11 +43,24 @@ input int      InpMagic            = 20250813; // EA magic number
 #define TP_LINE        "tp_line"
 
 // ===== UI Layout =====
-#define BTN_W   130
-#define BTN_H   28
-#define PAD     10
-#define ORGX    16
-#define ORGY    32
+#define BTN_W   164
+#define BTN_H   26
+#define PAD     8
+#define ORGX    18
+#define ORGY    40
+
+// ===== Theme (flat / modern) =====
+#define CLR_PANEL_BG      C'22,26,33'
+#define CLR_PANEL_BORDER  C'40,46,56'
+#define CLR_TEXT_PRIMARY  C'237,242,247'
+#define CLR_ACCENT_BLUE   C'33,150,243'
+#define CLR_ACCENT_GREEN  C'46,204,113'
+#define CLR_ACCENT_ORANGE C'245,166,35'
+#define CLR_ACCENT_RED    C'231,76,60'
+#define CLR_ACCENT_RED_D  C'192,57,43'
+#define CLR_ACCENT_TEAL   C'0,188,212'
+#define CLR_ACCENT_AMBER  C'255,193,7'
+#define CLR_ACCENT_GRAY   C'96,106,122'
 
 // ===== State =====
 enum EOrderTypeIdx { OT_BUY_STOP=0, OT_SELL_STOP=1, OT_BUY_LIMIT=2, OT_SELL_LIMIT=3 };
@@ -106,6 +120,7 @@ void OnDeinit(const int reason)
       "btnTP",
       "btnTogglePanel",
       "panelBackground",
+      "panelTitle",
       "zone_distance_label"
    };
 
@@ -152,39 +167,41 @@ void OnTimer()
 void CreatePanel()
 {
     const int rows   = 7; // total rows including SET SL/TP
-    const int totalH = (BTN_H + PAD) * rows + PAD;
+    const int titleH = 22;
+    const int totalH = titleH + (BTN_H + PAD) * rows + PAD + 8;
 
-    // Rounded background
-    CreateRectLabelRounded(PANEL_BG, ORGX - 10, ORGY - 10, BTN_W + 20, totalH + 5, clrDimGray, clrBlack);
+    // Flat panel background
+    CreateRectLabelRounded(PANEL_BG, ORGX - 12, ORGY - 14, BTN_W + 24, totalH, CLR_PANEL_BG, CLR_PANEL_BORDER);
+    CreatePanelTitle(PANEL_TITLE, "KALI LAYERS TOOLBOX", ORGX, ORGY - 8, BTN_W, titleH);
 
-    int y = ORGY;
+    int y = ORGY + titleH;
 
     // Main buttons
-    CreateModernButton(BTN_ORDER_TYPE, OrderTypeLabel(), ORGX, y, BTN_W, BTN_H, clrDodgerBlue); y += BTN_H + 5;
-    CreateModernButton(BTN_DRAW_ZONE , "Draw Zone"     , ORGX, y, BTN_W, BTN_H, clrMediumSeaGreen); y += BTN_H + 5;
-    CreateModernButton(BTN_START     , "Start"         , ORGX, y, BTN_W, BTN_H, clrOrange); y += BTN_H + 5;
+    CreateModernButton(BTN_ORDER_TYPE, OrderTypeLabel(), ORGX, y, BTN_W, BTN_H, CLR_ACCENT_BLUE); y += BTN_H + PAD;
+    CreateModernButton(BTN_DRAW_ZONE , "Draw Zone"     , ORGX, y, BTN_W, BTN_H, CLR_ACCENT_GREEN); y += BTN_H + PAD;
+    CreateModernButton(BTN_START     , "Start"         , ORGX, y, BTN_W, BTN_H, CLR_ACCENT_ORANGE); y += BTN_H + PAD;
 
     // SL and TP side-by-side
-    CreateModernButton(BTN_SL, "SL", ORGX, y, BTN_W/2, BTN_H, clrTomato);
-    CreateModernButton(BTN_TP, "TP", ORGX + BTN_W/2 + 5, y, BTN_W/2 - 5, BTN_H, clrDeepSkyBlue);
-    y += BTN_H + 5;
+    CreateModernButton(BTN_SL, "SL", ORGX, y, BTN_W/2 - 3, BTN_H, CLR_ACCENT_RED);
+    CreateModernButton(BTN_TP, "TP", ORGX + BTN_W/2 + 3, y, BTN_W/2 - 3, BTN_H, CLR_ACCENT_TEAL);
+    y += BTN_H + PAD;
 
     // SET SL/TP button immediately below SL/TP
-    CreateModernButton(BTN_SET, "Set SL/TP", ORGX, y, BTN_W, BTN_H, clrChocolate);
-    y += BTN_H + 5;
+    CreateModernButton(BTN_SET, "Set SL/TP", ORGX, y, BTN_W, BTN_H, CLR_ACCENT_BLUE);
+    y += BTN_H + PAD;
 
     // Remaining buttons
-    CreateModernButton(BTN_CLOSE_ALL, "Close All", ORGX, y, BTN_W, BTN_H, clrRed); y += BTN_H + 5;
-    CreateModernButton(BTN_DEL_PEND, "Del Pending", ORGX, y, BTN_W, BTN_H, clrFireBrick); y += BTN_H + 5;
-    CreateModernButton(BTN_BE, "BE OFF", ORGX, y, BTN_W, BTN_H, clrGold); y += BTN_H + 5;
+    CreateModernButton(BTN_CLOSE_ALL, "Close All", ORGX, y, BTN_W, BTN_H, CLR_ACCENT_RED); y += BTN_H + PAD;
+    CreateModernButton(BTN_DEL_PEND, "Del Pending", ORGX, y, BTN_W, BTN_H, CLR_ACCENT_RED_D); y += BTN_H + PAD;
+    CreateModernButton(BTN_BE, "BE OFF", ORGX, y, BTN_W, BTN_H, CLR_ACCENT_AMBER); y += BTN_H + PAD;
 
     // Toggle button (manual positioning)
-    int toggleX = ORGX + BTN_W + 15;
-    int toggleY = ORGY - 10;
-    CreateModernButton(BTN_TOGGLE_PANEL, "-", toggleX, toggleY, 15, BTN_H, clrDimGray);
+    int toggleX = ORGX + BTN_W + 14;
+    int toggleY = ORGY - 8;
+    CreateModernButton(BTN_TOGGLE_PANEL, "-", toggleX, toggleY, 18, titleH, CLR_ACCENT_GRAY);
 
     // Store original X positions
-    string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+    string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                              BTN_SL, BTN_TP, BTN_SET, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE};
 
     ArrayResize(gPanelOrigX, ArraySize(panelObjects));
@@ -197,7 +214,7 @@ void CreatePanel()
 
 void HidePanel()
 {
-   string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+   string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                             BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET, BTN_TOGGLE_PANEL};
 
    for(int i=0; i<ArraySize(panelObjects); i++)
@@ -206,7 +223,7 @@ void HidePanel()
 }
 void ShowPanel()
 {
-   string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+   string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                             BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET, BTN_TOGGLE_PANEL};
 
    for(int i=0; i<ArraySize(panelObjects); i++)
@@ -227,9 +244,24 @@ void CreateRectLabelRounded(string name, int x, int y, int w, int h, color bg, c
    ObjectSetInteger(0,name,OBJPROP_YSIZE,h);
    ObjectSetInteger(0,name,OBJPROP_BGCOLOR,bg);
    ObjectSetInteger(0,name,OBJPROP_COLOR,border);
-   ObjectSetInteger(0,name,OBJPROP_BORDER_TYPE,BORDER_RAISED);
+   ObjectSetInteger(0,name,OBJPROP_BORDER_TYPE,BORDER_FLAT);
    ObjectSetInteger(0,name,OBJPROP_SELECTABLE,false);
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+}
+
+void CreatePanelTitle(string name, string text, int x, int y, int width, int height)
+{
+   if(ObjectFind(0, name) < 0) ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
+
+   ObjectSetInteger(0, name, OBJPROP_CORNER, 0);
+   ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x + 2);
+   ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, CLR_TEXT_PRIMARY);
+   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, 10);
+   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, name, OBJPROP_HIDDEN, false);
+   ObjectSetString(0, name, OBJPROP_FONT, "Segoe UI");
+   ObjectSetString(0, name, OBJPROP_TEXT, text);
 }
 
 //+------------------------------------------------------------------+
@@ -248,9 +280,13 @@ void CreateModernButton(string name, string text, int x, int y, int width, int h
    ObjectSetInteger(0, name, OBJPROP_YSIZE, height);
    ObjectSetInteger(0, name, OBJPROP_CORNER, 0);
    ObjectSetInteger(0, name, OBJPROP_BGCOLOR, clr);
-   ObjectSetInteger(0, name, OBJPROP_COLOR, clrWhite);
-   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, 12);
-   ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_RAISED);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, CLR_TEXT_PRIMARY);
+   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, 10);
+   ObjectSetInteger(0, name, OBJPROP_BORDER_COLOR, clr);
+   ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, name, OBJPROP_STATE, false);
+   ObjectSetString(0, name, OBJPROP_FONT, "Segoe UI");
    ObjectSetString(0, name, OBJPROP_TEXT, text);
 }
 
@@ -322,7 +358,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
         gPanelVisible = !gPanelVisible;
         ObjectSetString(0, BTN_TOGGLE_PANEL, OBJPROP_TEXT, gPanelVisible ? "-" : "+");
     
-        string panelObjects[] = {PANEL_BG, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
+        string panelObjects[] = {PANEL_BG, PANEL_TITLE, BTN_ORDER_TYPE, BTN_DRAW_ZONE, BTN_START,
                                  BTN_SL, BTN_TP, BTN_CLOSE_ALL, BTN_DEL_PEND, BTN_BE, BTN_SET};
     
         for(int i = 0; i < ArraySize(panelObjects); i++)
@@ -748,4 +784,3 @@ void UpdateZoneDistanceLabel()
 
     ObjectSetString(0, ZONE_DIST_LABEL, OBJPROP_TEXT, text);
 }
-
