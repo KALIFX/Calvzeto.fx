@@ -98,6 +98,7 @@ CTrade obj_Trade; //--- Trade object for executing trading operations
 int panel_x = 10, panel_y = 30; //--- Panel position coordinates
 bool is_tool_dragging = false; //--- True while user drags RR tool blocks
 bool panel_minimized = false; //--- Control panel collapsed state
+bool suppress_chart_redraw = false; //--- Batch object updates without intermediate redraw flicker
 
 void SyncComputedRR();
 void SyncPanelInputsFromLines();
@@ -962,6 +963,7 @@ void createControlPanel() {
 //| Show main tool                                                   |
 //+------------------------------------------------------------------+
 void showTool() {
+   suppress_chart_redraw = true; //--- Prevent transient flicker while constructing RR objects
    // Hide panel
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false); //--- Hide panel background
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_BACK, false);
@@ -1117,6 +1119,7 @@ void showTool() {
    SyncComputedRR();
    SyncPanelInputsFromLines();
 
+   suppress_chart_redraw = false;
    ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true); //--- Enable mouse move events
    ChartRedraw(0); //--- Redraw chart
 }
@@ -1335,7 +1338,8 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
    ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false); //--- Disable selection
    ObjectSetInteger(0, objName, OBJPROP_SELECTED, false); //--- Disable selected state
 
-   ChartRedraw(0); //--- Redraw chart
+   if(!suppress_chart_redraw)
+      ChartRedraw(0); //--- Redraw chart
    return true; //--- Return success
 }
 
@@ -1357,7 +1361,8 @@ bool createHL(string objName, datetime time1, double price1, color clr) {
    ObjectSetInteger(0, objName, OBJPROP_SELECTED, false);
    ObjectSetInteger(0, objName, OBJPROP_ZORDER, 1); //--- Lower click priority than panel and RR blocks
 
-   ChartRedraw(0); //--- Redraw chart
+   if(!suppress_chart_redraw)
+      ChartRedraw(0); //--- Redraw chart
    return true; //--- Return success
 }
 
