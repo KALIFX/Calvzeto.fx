@@ -1077,13 +1077,13 @@ void showTool() {
 
    if(selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY") { //--- Check for buy orders
       createButton(REC2, "", xd2, yd2, xs2, ys2, clrWhite, C'200,240,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC2
-      createButton(REC3, "", xd3, yd3, xs3, ys3, clrBlack, clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3
+      createButton(REC3, "", xd3, yd3, xs3, ys3, C'070,070,070', clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3 (darker gray text)
       createButton(REC4, "", xd4, yd4, xs4, ys4, clrWhite, C'255,200,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC4
       createButton(REC5, "", xd5, yd5, xs5, ys5, clrWhite, C'240,160,160', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC5
    }
    else { //--- Handle sell orders
       createButton(REC2, "", xd2, yd2, xs2, ys2, clrWhite, C'255,200,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC2
-      createButton(REC3, "", xd3, yd3, xs3, ys3, clrBlack, clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3
+      createButton(REC3, "", xd3, yd3, xs3, ys3, C'070,070,070', clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3 (darker gray text)
       createButton(REC4, "", xd4, yd4, xs4, ys4, clrWhite, C'200,240,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC4
       createButton(REC1, "", xd1, yd1, xs1, ys1, clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC1
    }
