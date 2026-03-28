@@ -40,6 +40,7 @@ input double PANEL_SCALE_PERCENT = 90.0; // Scale the whole control panel size (
 #define SL_EDIT_FIELD  "SL_EDIT_FIELD" //--- SL price edit field
 #define TP_EDIT_FIELD  "TP_EDIT_FIELD" //--- TP price edit field
 #define RISK_VALUE_EDIT "RISK_VALUE_EDIT" //--- Risk/Lot value edit field
+#define DIVIDER_TOP_INPUTS "DIVIDER_TOP_INPUTS" //--- Divider above Risk% and Entry row
 #define DIVIDER_TOP_MID "DIVIDER_TOP_MID" //--- Divider between SL/TP inputs and Sell/Buy row
 #define DIVIDER_MID_BOTTOM "DIVIDER_MID_BOTTOM" //--- Divider between limit row and Cancel/Send row
 
@@ -360,6 +361,7 @@ void SetPanelMinimized(bool minimized) {
 
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_TIMEFRAMES, panel_tf);
@@ -948,6 +950,22 @@ void createControlPanel() {
    createButton(MINIMIZE_BTN, CharToString(240), panel_x + GetPanelScaledPx(212), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
    createButton(CLOSE_BTN, CharToString(251), panel_x + GetPanelScaledPx(246), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
 
+   ObjectCreate(0, DIVIDER_TOP_INPUTS, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(36));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_XSIZE, GetPanelScaledPx(266));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_ZORDER, 100);
+
    createButton(RISK_EDIT, "Risk %", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(42), GetPanelScaledPx(86), GetPanelScaledPx(32), clrWhite, C'060,060,066', GetPanelScaledFontSize(10), C'085,085,095', false, "Segoe UI");
 
    ObjectCreate(0, RISK_VALUE_EDIT, OBJ_EDIT, 0, 0, 0);
@@ -1057,6 +1075,7 @@ void showTool() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false); //--- Hide panel background
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_BACK, false);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_BACK, false);
@@ -1202,6 +1221,7 @@ void showPanel() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false); //--- Show panel background
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_BACK, false);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_BACK, false);
@@ -1478,6 +1498,7 @@ void deletePanel() {
    ObjectDelete(0, SELL_BTN);
    ObjectDelete(0, RISK_EDIT);
    ObjectDelete(0, RISK_VALUE_EDIT);
+   ObjectDelete(0, DIVIDER_TOP_INPUTS);
    ObjectDelete(0, ENTRY_EDIT);
    ObjectDelete(0, SL_EDIT_FIELD);
    ObjectDelete(0, TP_EDIT_FIELD);
