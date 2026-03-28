@@ -939,7 +939,7 @@ void createControlPanel() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_XSIZE, GetPanelScaledPx(286));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_YSIZE, GetPanelScaledPx(290));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BGCOLOR, C'048,048,052');
-   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, C'095,095,105');
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
    ObjectSetInteger(0, PANEL_BG, OBJPROP_STYLE, STYLE_SOLID);
    ObjectSetInteger(0, PANEL_BG, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_TYPE, BORDER_FLAT);
