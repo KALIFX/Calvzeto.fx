@@ -1168,9 +1168,9 @@ void showTool() {
    double price_tp = 0, price_sl = 0, price_prc = 0; //--- Variables for price
    int window = 0; //--- Chart window
 
-   ChartXYToTimePrice(0, xd1, yd1 + ys1, window, dt_tp, price_tp); //--- Convert REC1 coordinates to time and price
-   ChartXYToTimePrice(0, xd3, yd3 + ys3, window, dt_prc, price_prc); //--- Convert REC3 coordinates to time and price
-   ChartXYToTimePrice(0, xd5, yd5 + ys5, window, dt_sl, price_sl); //--- Convert REC5 coordinates to time and price
+   ChartXYToTimePrice(0, xd1 + xs1 / 2, yd1 + ys1, window, dt_tp, price_tp); //--- Convert REC1 center/bottom to time and price
+   ChartXYToTimePrice(0, xd3 + xs3 / 2, yd3 + ys3, window, dt_prc, price_prc); //--- Convert REC3 center/bottom to time and price
+   ChartXYToTimePrice(0, xd5 + xs5 / 2, yd5 + ys5, window, dt_sl, price_sl); //--- Convert REC5 center/bottom to time and price
 
    createHL(TP_HL, dt_tp, price_tp, C'120,200,120'); //--- Create TP horizontal line
    createHL(PR_HL, dt_prc, price_prc, C'150,150,150'); //--- Create entry horizontal line
@@ -1209,18 +1209,17 @@ void showTool() {
    }
 
 
+   tool_visible = true; //--- Set tool visibility flag
+   if(IsMarketOrderMode()) {
+      SyncMarketEntryWithLine();
+      EnsureMarketOrderLevelsValid();
+   }
+   SyncMarketSLTPLinesWithRRTool();
    update_Text(REC1, BuildTPText()); //--- Update REC1 text
    update_Text(REC3, BuildOrderTypeText()); //--- Update REC3 text
    update_Text(REC5, BuildSLText()); //--- Update REC5 text
    SyncComputedRR();
    SyncPanelInputsFromLines();
-
-   tool_visible = true; //--- Set tool visibility flag
-   if(IsMarketOrderMode()) {
-      SyncMarketEntryWithLine();
-      EnsureMarketOrderLevelsValid();
-      SyncMarketSLTPLinesWithRRTool();
-   }
    suppress_chart_redraw = false;
    ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true); //--- Enable mouse move events
    ChartRedraw(0); //--- Redraw chart
