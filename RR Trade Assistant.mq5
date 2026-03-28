@@ -96,6 +96,7 @@ const double DEFAULT_FIXED_LOT = 0.01;
 const double DEFAULT_MARKET_SL_OFFSET_PCT = 0.35;
 const double DEFAULT_MARKET_TP_OFFSET_PCT = 0.70;
 const int MIN_LEVEL_GAP_PX = 8; //--- Minimum visual gap between TP/SL and Entry blocks
+const color PANEL_DIVIDER_COLOR = C'255,255,255'; //--- Explicit white to avoid theme-dependent rendering
 CTrade obj_Trade; //--- Trade object for executing trading operations
 int panel_x = 10, panel_y = 30; //--- Panel position coordinates
 bool is_tool_dragging = false; //--- True while user drags RR tool blocks
@@ -1002,10 +1003,13 @@ void createControlPanel() {
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(118));
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_XSIZE, GetPanelScaledPx(266));
-   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
-   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BGCOLOR, clrWhite);
-   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BORDER_COLOR, clrWhite);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_YSIZE, MathMax(2, GetPanelScaledPx(2)));
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BACK, false);
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_SELECTED, false);
@@ -1023,10 +1027,13 @@ void createControlPanel() {
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(244));
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_XSIZE, GetPanelScaledPx(266));
-   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
-   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BGCOLOR, clrWhite);
-   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BORDER_COLOR, clrWhite);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_YSIZE, MathMax(2, GetPanelScaledPx(2)));
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BACK, false);
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_SELECTED, false);
