@@ -1099,12 +1099,10 @@ void showTool() {
 
    if(selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY") { //--- Check for buy orders
       // Buy orders: TP at top, entry in middle, SL at bottom
-      createButton(REC1, "", tool_x, GetScaledPx(20), tool_width, GetScaledPx(30), clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create TP rectangle
-
-      xd1 = (int)ObjectGetInteger(0, REC1, OBJPROP_XDISTANCE); //--- Get REC1 x-distance
-      yd1 = (int)ObjectGetInteger(0, REC1, OBJPROP_YDISTANCE); //--- Get REC1 y-distance
-      xs1 = (int)ObjectGetInteger(0, REC1, OBJPROP_XSIZE); //--- Get REC1 x-size
-      ys1 = (int)ObjectGetInteger(0, REC1, OBJPROP_YSIZE); //--- Get REC1 y-size
+      xd1 = tool_x; //--- Set REC1 x-distance
+      yd1 = GetScaledPx(20); //--- Set REC1 y-distance
+      xs1 = tool_width; //--- Set REC1 x-size
+      ys1 = GetScaledPx(30); //--- Set REC1 y-size
 
       xd2 = xd1; //--- Set REC2 x-distance
       yd2 = yd1 + ys1; //--- Set REC2 y-distance
@@ -1128,12 +1126,10 @@ void showTool() {
    }
    else { //--- Handle sell orders
       // Sell orders: SL at top, entry in middle, TP at bottom
-      createButton(REC5, "", tool_x, GetScaledPx(20), tool_width, GetScaledPx(30), clrWhite, C'240,160,160', GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create SL rectangle
-
-      xd5 = (int)ObjectGetInteger(0, REC5, OBJPROP_XDISTANCE); //--- Get REC5 x-distance
-      yd5 = (int)ObjectGetInteger(0, REC5, OBJPROP_YDISTANCE); //--- Get REC5 y-distance
-      xs5 = (int)ObjectGetInteger(0, REC5, OBJPROP_XSIZE); //--- Get REC5 x-size
-      ys5 = (int)ObjectGetInteger(0, REC5, OBJPROP_YSIZE); //--- Get REC5 y-size
+      xd5 = tool_x; //--- Set REC5 x-distance
+      yd5 = GetScaledPx(20); //--- Set REC5 y-distance
+      xs5 = tool_width; //--- Set REC5 x-size
+      ys5 = GetScaledPx(30); //--- Set REC5 y-size
 
       xd2 = xd5; //--- Set REC2 x-distance
       yd2 = yd5 + ys5; //--- Set REC2 y-distance
