@@ -17,7 +17,7 @@
 
 input double RR_TOOL_SCALE_PERCENT = 75.0; //--- Scale the RR tool size (100 = default)
 input int RR_TOOL_FONT_SIZE = 8; //--- Font size for RR tool blocks
-input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size (100 = default)
+input double PANEL_SCALE_PERCENT = 90.0; // Scale the whole control panel size (100 = default)
 
 // Control panel object names
 #define PANEL_BG       "PANEL_BG" //--- Define constant for panel background object name
@@ -40,6 +40,9 @@ input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size 
 #define SL_EDIT_FIELD  "SL_EDIT_FIELD" //--- SL price edit field
 #define TP_EDIT_FIELD  "TP_EDIT_FIELD" //--- TP price edit field
 #define RISK_VALUE_EDIT "RISK_VALUE_EDIT" //--- Risk/Lot value edit field
+#define DIVIDER_TOP_INPUTS "DIVIDER_TOP_INPUTS" //--- Divider above Risk% and Entry row
+#define DIVIDER_TOP_MID "DIVIDER_TOP_MID" //--- Divider between SL/TP inputs and Sell/Buy row
+#define DIVIDER_MID_BOTTOM "DIVIDER_MID_BOTTOM" //--- Divider between limit row and Cancel/Send row
 
 #define REC1 "REC1" //--- Define constant for rectangle 1 (TP) object name
 #define REC2 "REC2" //--- Define constant for rectangle 2 object name
@@ -94,10 +97,12 @@ const double DEFAULT_FIXED_LOT = 0.01;
 const double DEFAULT_MARKET_SL_OFFSET_PCT = 0.35;
 const double DEFAULT_MARKET_TP_OFFSET_PCT = 0.70;
 const int MIN_LEVEL_GAP_PX = 8; //--- Minimum visual gap between TP/SL and Entry blocks
+const color PANEL_DIVIDER_COLOR = C'119,136,153'; //--- LightSlateGray divider color
 CTrade obj_Trade; //--- Trade object for executing trading operations
 int panel_x = 10, panel_y = 30; //--- Panel position coordinates
 bool is_tool_dragging = false; //--- True while user drags RR tool blocks
 bool panel_minimized = false; //--- Control panel collapsed state
+bool suppress_chart_redraw = false; //--- Batch object updates without intermediate redraw flicker
 
 void SyncComputedRR();
 void SyncPanelInputsFromLines();
@@ -128,6 +133,7 @@ void ShiftRRToolY(int delta_y);
 void ClampMarketLinesToViewport();
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
+void ApplyPanelInputsToRRTool();
 void EnsureMarketOrderLevelsValid();
 int GetPanelScaledPx(int base_px);
 int GetPanelScaledFontSize(int base_size);
@@ -355,9 +361,12 @@ void SetPanelMinimized(bool minimized) {
 
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, BUY_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, SELL_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, BUY_STOP_BTN, OBJPROP_TIMEFRAMES, panel_tf);
@@ -551,6 +560,47 @@ void SyncPanelInputsFromLines() {
    // keep user input in RISK_VALUE_EDIT unchanged during sync
 }
 
+void ApplyPanelInputsToRRTool() {
+   if(!tool_visible)
+      return;
+
+   bool is_buy_side = (selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY");
+   double entry = Get_Price_d(PR_HL);
+
+   if(IsMarketOrderMode()) {
+      double mkt_entry = is_buy_side ? SymbolInfoDouble(Symbol(), SYMBOL_ASK) : SymbolInfoDouble(Symbol(), SYMBOL_BID);
+      if(mkt_entry > 0)
+         entry = mkt_entry;
+   }
+   else {
+      double manual_entry = ReadPriceInput(ENTRY_EDIT);
+      if(manual_entry > 0)
+         entry = manual_entry;
+   }
+
+   if(entry <= 0)
+      return;
+
+   ObjectSetDouble(0, PR_HL, OBJPROP_PRICE, entry);
+
+   double sl_points = StringToDouble(ObjectGetString(0, SL_EDIT_FIELD, OBJPROP_TEXT));
+   double tp_points = StringToDouble(ObjectGetString(0, TP_EDIT_FIELD, OBJPROP_TEXT));
+
+   if(sl_points > 0)
+      ObjectSetDouble(0, SL_HL, OBJPROP_PRICE, is_buy_side ? entry - sl_points * _Point : entry + sl_points * _Point);
+   if(tp_points > 0)
+      ObjectSetDouble(0, TP_HL, OBJPROP_PRICE, is_buy_side ? entry + tp_points * _Point : entry - tp_points * _Point);
+
+   EnsureMarketOrderLevelsValid();
+   SyncMarketSLTPLinesWithRRTool();
+   SyncComputedRR();
+   SyncPanelInputsFromLines();
+   update_Text(REC1, BuildTPText());
+   update_Text(REC3, BuildOrderTypeText());
+   update_Text(REC5, BuildSLText());
+   ChartRedraw(0);
+}
+
 //+------------------------------------------------------------------+
 //| Chart event handler                                              |
 //+------------------------------------------------------------------+
@@ -586,6 +636,13 @@ void OnChartEvent(
       update_Text(REC5, BuildSLText());
       ChartRedraw(0);
       return;
+   }
+
+   if(id == CHARTEVENT_OBJECT_ENDEDIT) {
+      if(sparam == ENTRY_EDIT || sparam == SL_EDIT_FIELD || sparam == TP_EDIT_FIELD) {
+         ApplyPanelInputsToRRTool();
+         return;
+      }
    }
 
    if(id == CHARTEVENT_OBJECT_CLICK) { //--- Handle object click events
@@ -884,11 +941,30 @@ void createControlPanel() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_XSIZE, GetPanelScaledPx(286));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_YSIZE, GetPanelScaledPx(290));
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BGCOLOR, C'048,048,052');
-   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, C'095,095,105');
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, PANEL_BG, OBJPROP_BORDER_TYPE, BORDER_FLAT);
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false);
 
    createButton(MINIMIZE_BTN, CharToString(240), panel_x + GetPanelScaledPx(212), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
    createButton(CLOSE_BTN, CharToString(251), panel_x + GetPanelScaledPx(246), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
+
+   ObjectCreate(0, DIVIDER_TOP_INPUTS, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(36));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_XSIZE, GetPanelScaledPx(266));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_ZORDER, 100);
 
    createButton(RISK_EDIT, "Risk %", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(42), GetPanelScaledPx(86), GetPanelScaledPx(32), clrWhite, C'060,060,066', GetPanelScaledFontSize(10), C'085,085,095', false, "Segoe UI");
 
@@ -944,13 +1020,45 @@ void createControlPanel() {
    ObjectSetString(0, TP_EDIT_FIELD, OBJPROP_FONT, "Segoe UI");
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_FONTSIZE, GetPanelScaledFontSize(11));
 
-   createButton(BUY_BTN, "Buy", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
-   createButton(SELL_BTN, "Sell", panel_x + GetPanelScaledPx(174), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
+   ObjectCreate(0, DIVIDER_TOP_MID, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(118));
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_XSIZE, GetPanelScaledPx(266));
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_ZORDER, 100);
 
-   createButton(SELL_STOP_BTN, "Sell Stop", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
-   createButton(BUY_STOP_BTN, "Buy Stop", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
-   createButton(SELL_LIMIT_BTN, "Sell Limit", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(204), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
-   createButton(BUY_LIMIT_BTN, "Buy Limit", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(204), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
+   createButton(SELL_BTN, "Sell", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
+   createButton(BUY_BTN, "Buy", panel_x + GetPanelScaledPx(174), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
+
+   createButton(SELL_STOP_BTN, "Sell Stop", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
+   createButton(BUY_STOP_BTN, "Buy Stop", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
+   createButton(SELL_LIMIT_BTN, "Sell Limit", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(204), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
+   createButton(BUY_LIMIT_BTN, "Buy Limit", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(204), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
+
+   ObjectCreate(0, DIVIDER_MID_BOTTOM, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_XDISTANCE, panel_x + GetPanelScaledPx(10));
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_YDISTANCE, panel_y + GetPanelScaledPx(244));
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_XSIZE, GetPanelScaledPx(266));
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BGCOLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BORDER_COLOR, PANEL_DIVIDER_COLOR);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_ZORDER, 100);
 
    createButton(CANCEL_BTN, "Cancel", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(250), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
    createButton(PLACE_ORDER_BTN, "Send", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(250), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'020,110,165', GetPanelScaledFontSize(12), C'070,160,210', false, "Segoe UI");
@@ -962,13 +1070,17 @@ void createControlPanel() {
 //| Show main tool                                                   |
 //+------------------------------------------------------------------+
 void showTool() {
+   suppress_chart_redraw = true; //--- Prevent transient flicker while constructing RR objects
    // Hide panel
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false); //--- Hide panel background
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_BACK, false);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BACK, false);
    ObjectSetInteger(0, BUY_BTN, OBJPROP_BACK, false);
    ObjectSetInteger(0, SELL_BTN, OBJPROP_BACK, false);
    ObjectSetInteger(0, BUY_STOP_BTN, OBJPROP_BACK, false); //--- Hide Buy Stop button
@@ -987,12 +1099,10 @@ void showTool() {
 
    if(selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY") { //--- Check for buy orders
       // Buy orders: TP at top, entry in middle, SL at bottom
-      createButton(REC1, "", tool_x, GetScaledPx(20), tool_width, GetScaledPx(30), clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create TP rectangle
-
-      xd1 = (int)ObjectGetInteger(0, REC1, OBJPROP_XDISTANCE); //--- Get REC1 x-distance
-      yd1 = (int)ObjectGetInteger(0, REC1, OBJPROP_YDISTANCE); //--- Get REC1 y-distance
-      xs1 = (int)ObjectGetInteger(0, REC1, OBJPROP_XSIZE); //--- Get REC1 x-size
-      ys1 = (int)ObjectGetInteger(0, REC1, OBJPROP_YSIZE); //--- Get REC1 y-size
+      xd1 = tool_x; //--- Set REC1 x-distance
+      yd1 = GetScaledPx(20); //--- Set REC1 y-distance
+      xs1 = tool_width; //--- Set REC1 x-size
+      ys1 = GetScaledPx(30); //--- Set REC1 y-size
 
       xd2 = xd1; //--- Set REC2 x-distance
       yd2 = yd1 + ys1; //--- Set REC2 y-distance
@@ -1016,12 +1126,10 @@ void showTool() {
    }
    else { //--- Handle sell orders
       // Sell orders: SL at top, entry in middle, TP at bottom
-      createButton(REC5, "", tool_x, GetScaledPx(20), tool_width, GetScaledPx(30), clrWhite, C'240,160,160', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create SL rectangle
-
-      xd5 = (int)ObjectGetInteger(0, REC5, OBJPROP_XDISTANCE); //--- Get REC5 x-distance
-      yd5 = (int)ObjectGetInteger(0, REC5, OBJPROP_YDISTANCE); //--- Get REC5 y-distance
-      xs5 = (int)ObjectGetInteger(0, REC5, OBJPROP_XSIZE); //--- Get REC5 x-size
-      ys5 = (int)ObjectGetInteger(0, REC5, OBJPROP_YSIZE); //--- Get REC5 y-size
+      xd5 = tool_x; //--- Set REC5 x-distance
+      yd5 = GetScaledPx(20); //--- Set REC5 y-distance
+      xs5 = tool_width; //--- Set REC5 x-size
+      ys5 = GetScaledPx(30); //--- Set REC5 y-size
 
       xd2 = xd5; //--- Set REC2 x-distance
       yd2 = yd5 + ys5; //--- Set REC2 y-distance
@@ -1044,17 +1152,29 @@ void showTool() {
       ys1 = GetScaledPx(30); //--- Set REC1 y-size
    }
 
+   if(selected_order_type == "BUY" || selected_order_type == "SELL") {
+      double mkt_entry = (selected_order_type == "BUY") ? SymbolInfoDouble(Symbol(), SYMBOL_ASK) : SymbolInfoDouble(Symbol(), SYMBOL_BID);
+      if(mkt_entry > 0) {
+         int target_x = xd3 + xs3 / 2;
+         int target_y = 0;
+         if(ChartTimePriceToXY(0, 0, TimeCurrent(), mkt_entry, target_x, target_y)) {
+            int delta_y = target_y - (yd3 + ys3); // align REC3 bottom to current market entry
+            yd1 += delta_y; yd2 += delta_y; yd3 += delta_y; yd4 += delta_y; yd5 += delta_y;
+         }
+      }
+   }
+
    datetime dt_tp = 0, dt_sl = 0, dt_prc = 0; //--- Variables for time
    double price_tp = 0, price_sl = 0, price_prc = 0; //--- Variables for price
    int window = 0; //--- Chart window
 
-   ChartXYToTimePrice(0, xd1, yd1 + ys1, window, dt_tp, price_tp); //--- Convert REC1 coordinates to time and price
-   ChartXYToTimePrice(0, xd3, yd3 + ys3, window, dt_prc, price_prc); //--- Convert REC3 coordinates to time and price
-   ChartXYToTimePrice(0, xd5, yd5 + ys5, window, dt_sl, price_sl); //--- Convert REC5 coordinates to time and price
+   ChartXYToTimePrice(0, xd1 + xs1 / 2, yd1 + ys1, window, dt_tp, price_tp); //--- Convert REC1 center/bottom to time and price
+   ChartXYToTimePrice(0, xd3 + xs3 / 2, yd3 + ys3, window, dt_prc, price_prc); //--- Convert REC3 center/bottom to time and price
+   ChartXYToTimePrice(0, xd5 + xs5 / 2, yd5 + ys5, window, dt_sl, price_sl); //--- Convert REC5 center/bottom to time and price
 
-   createHL(TP_HL, dt_tp, price_tp, clrTeal); //--- Create TP horizontal line
+   createHL(TP_HL, dt_tp, price_tp, C'120,200,120'); //--- Create TP horizontal line
    createHL(PR_HL, dt_prc, price_prc, C'150,150,150'); //--- Create entry horizontal line
-   createHL(SL_HL, dt_sl, price_sl, clrRed); //--- Create SL horizontal line
+   createHL(SL_HL, dt_sl, price_sl, C'240,160,160'); //--- Create SL horizontal line
 
    if(selected_order_type == "BUY" || selected_order_type == "SELL") {
       double mkt_entry = (selected_order_type == "BUY") ? SymbolInfoDouble(Symbol(), SYMBOL_ASK) : SymbolInfoDouble(Symbol(), SYMBOL_BID);
@@ -1077,25 +1197,30 @@ void showTool() {
 
    if(selected_order_type == "BUY_STOP" || selected_order_type == "BUY_LIMIT" || selected_order_type == "BUY") { //--- Check for buy orders
       createButton(REC2, "", xd2, yd2, xs2, ys2, clrWhite, C'200,240,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC2
-      createButton(REC3, "", xd3, yd3, xs3, ys3, clrBlack, clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3
+      createButton(REC3, "", xd3, yd3, xs3, ys3, C'070,070,070', clrLightGray, GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create REC3 (darker gray text)
       createButton(REC4, "", xd4, yd4, xs4, ys4, clrWhite, C'255,200,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC4
-      createButton(REC5, "", xd5, yd5, xs5, ys5, clrWhite, C'240,160,160', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC5
+      createButton(REC5, "", xd5, yd5, xs5, ys5, clrWhite, C'240,160,160', GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create REC5
    }
    else { //--- Handle sell orders
       createButton(REC2, "", xd2, yd2, xs2, ys2, clrWhite, C'255,200,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC2
-      createButton(REC3, "", xd3, yd3, xs3, ys3, clrBlack, clrLightGray, GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC3
+      createButton(REC3, "", xd3, yd3, xs3, ys3, C'070,070,070', clrLightGray, GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create REC3 (darker gray text)
       createButton(REC4, "", xd4, yd4, xs4, ys4, clrWhite, C'200,240,200', GetScaledFontSize(10), clrBlack, true); //--- Create REC4
-      createButton(REC1, "", xd1, yd1, xs1, ys1, clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, false, "Arial Black"); //--- Create REC1
+      createButton(REC1, "", xd1, yd1, xs1, ys1, clrWhite, C'120,200,120', GetScaledFontSize(10), clrBlack, true, "Arial Black"); //--- Create REC1
    }
 
 
+   tool_visible = true; //--- Set tool visibility flag
+   if(IsMarketOrderMode()) {
+      SyncMarketEntryWithLine();
+      EnsureMarketOrderLevelsValid();
+   }
+   SyncMarketSLTPLinesWithRRTool();
    update_Text(REC1, BuildTPText()); //--- Update REC1 text
    update_Text(REC3, BuildOrderTypeText()); //--- Update REC3 text
    update_Text(REC5, BuildSLText()); //--- Update REC5 text
    SyncComputedRR();
    SyncPanelInputsFromLines();
-
-   tool_visible = true; //--- Set tool visibility flag
+   suppress_chart_redraw = false;
    ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true); //--- Enable mouse move events
    ChartRedraw(0); //--- Redraw chart
 }
@@ -1108,9 +1233,12 @@ void showPanel() {
    ObjectSetInteger(0, PANEL_BG, OBJPROP_BACK, false); //--- Show panel background
    ObjectSetInteger(0, RISK_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, RISK_VALUE_EDIT, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
    ObjectSetInteger(0, ENTRY_EDIT, OBJPROP_BACK, false);
    ObjectSetInteger(0, SL_EDIT_FIELD, OBJPROP_BACK, false);
    ObjectSetInteger(0, TP_EDIT_FIELD, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_TOP_MID, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID_BOTTOM, OBJPROP_BACK, false);
    ObjectSetInteger(0, BUY_BTN, OBJPROP_BACK, false);
    ObjectSetInteger(0, SELL_BTN, OBJPROP_BACK, false);
    ObjectSetInteger(0, BUY_STOP_BTN, OBJPROP_BACK, false); //--- Show Buy Stop button
@@ -1281,6 +1409,7 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
       ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
       ObjectSetInteger(0, objName, OBJPROP_WIDTH, 0);
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- keep RR block visually flat
+      ObjectSetInteger(0, objName, OBJPROP_ZORDER, 100); //--- RR blocks stay above lines for click handling
 
       if(has_rr_text) {
          string txt_obj = objName + "_TXT";
@@ -1300,18 +1429,21 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
          ObjectSetInteger(0, txt_obj, OBJPROP_BACK, false);
          ObjectSetInteger(0, txt_obj, OBJPROP_SELECTABLE, false);
          ObjectSetInteger(0, txt_obj, OBJPROP_SELECTED, false);
-         ObjectSetInteger(0, objName, OBJPROP_ZORDER, 10); // higher than lines
+         ObjectSetInteger(0, txt_obj, OBJPROP_ZORDER, 101); //--- text label above RR block
       }
    }
-   else
+   else {
       ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrBorder);
+      ObjectSetInteger(0, objName, OBJPROP_ZORDER, 100); //--- panel buttons above lines for click priority
+   }
    ObjectSetInteger(0, objName, OBJPROP_BACK, isBack); //--- Set background/foreground
    if(!is_rr_block)
       ObjectSetInteger(0, objName, OBJPROP_STATE, false); //--- Reset button state
    ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false); //--- Disable selection
    ObjectSetInteger(0, objName, OBJPROP_SELECTED, false); //--- Disable selected state
 
-   ChartRedraw(0); //--- Redraw chart
+   if(!suppress_chart_redraw)
+      ChartRedraw(0); //--- Redraw chart
    return true; //--- Return success
 }
 
@@ -1327,11 +1459,14 @@ bool createHL(string objName, datetime time1, double price1, color clr) {
    ObjectSetInteger(0, objName, OBJPROP_TIME, time1); //--- Set line time
    ObjectSetDouble(0, objName, OBJPROP_PRICE, price1); //--- Set line price
    ObjectSetInteger(0, objName, OBJPROP_COLOR, clr); //--- Set line color
-   ObjectSetInteger(0, objName, OBJPROP_BACK, true); //--- Set to foreground
+   ObjectSetInteger(0, objName, OBJPROP_BACK, true); //--- Draw in background layer
    ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_DOT); //--- Set line style
-   ObjectSetInteger(0, objName, OBJPROP_ZORDER, 0); // lowest priority
+   ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, true); //--- Keep lines draggable/selectable
+   ObjectSetInteger(0, objName, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, objName, OBJPROP_ZORDER, 1); //--- Lower click priority than panel and RR blocks
 
-   ChartRedraw(0); //--- Redraw chart
+   if(!suppress_chart_redraw)
+      ChartRedraw(0); //--- Redraw chart
    return true; //--- Return success
 }
 
@@ -1375,8 +1510,11 @@ void deletePanel() {
    ObjectDelete(0, SELL_BTN);
    ObjectDelete(0, RISK_EDIT);
    ObjectDelete(0, RISK_VALUE_EDIT);
+   ObjectDelete(0, DIVIDER_TOP_INPUTS);
    ObjectDelete(0, ENTRY_EDIT);
    ObjectDelete(0, SL_EDIT_FIELD);
    ObjectDelete(0, TP_EDIT_FIELD);
+   ObjectDelete(0, DIVIDER_TOP_MID);
+   ObjectDelete(0, DIVIDER_MID_BOTTOM);
    ChartRedraw(0); //--- Redraw chart
 }
